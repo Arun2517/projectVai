@@ -1,0 +1,92 @@
+#include <ESP32Servo.h>
+
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+
+// LCD setup (I2C address 0x27 for a 16x2 display)
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Pin definitions
+const int mq2Pin = 4;      // Analog pin connected to MQ2 sensor
+const int buzzerPin = 18;  // Pin connected to the buzzer
+const int servoPin = 23;   // Pin connected to the servo motor
+
+// Threshold for gas concentration
+const float gasThreshold = 1500.0;
+
+// Servo object
+Servo myServo;
+
+void setup() {
+  // Initialize LCD
+  lcd.init();
+  lcd.backlight();
+  
+  // Initialize serial communication for debugging
+  Serial.begin(115200);
+  
+  // Set up the MQ-2, buzzer, and servo pins
+  pinMode(mq2Pin, INPUT);
+  pinMode(buzzerPin, OUTPUT);
+  
+  // Attach the servo motor to the pin
+  myServo.attach(servoPin);
+  myServo.write(0);  // Start with the servo at 0 degrees
+
+  // Welcome message on LCD
+  lcd.setCursor(0, 0);
+  lcd.print("Gas Sensor Init");
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+  // Read analog value from MQ-2 sensor (0-1023)
+  int sensorValue = analogRead(mq2Pin);
+  
+  // Convert the analog value to a gas concentration (approximate)
+  float gasConcentration = (sensorValue / 1023.0) * 1000; // Scale to 0-1000
+  
+  // Print gas concentration on the serial monitor
+  Serial.print("Gas Concentration: ");
+  Serial.println(gasConcentration);
+  
+  // Display gas concentration on the LCD
+  lcd.setCursor(0, 0);
+  lcd.print("Gas Conc:");
+  lcd.print(gasConcentration);
+  lcd.print(" PPM");
+  
+  // Check if the gas concentration exceeds the threshold
+  if (gasConcentration > gasThreshold) {
+    // Activate the buzzer with "beep-beep" sound
+    for (int i = 0; i < 3; i++) {
+      digitalWrite(buzzerPin, HIGH);  // Turn buzzer on
+      delay(200);                     // Wait 200ms
+      digitalWrite(buzzerPin, LOW);   // Turn buzzer off
+      delay(200);                     // Wait 200ms
+    }
+
+    // Rotate the servo to 90 degrees
+    myServo.write(90);
+    
+    // Display warning on the LCD
+    lcd.setCursor(0, 1);
+    lcd.print("!! Gas Detected !!");
+  } else {
+    // Deactivate the buzzer
+    digitalWrite(buzzerPin, LOW);
+    
+    // Rotate the servo back to 0 degrees
+    myServo.write(0);
+
+    // Clear the second line of the LCD
+    lcd.setCursor(0, 1);
+    lcd.print("                ");
+  }
+  
+  // Small delay for sensor stability
+  delay(1000);
+}
+
