@@ -1,22 +1,23 @@
-#include <ESP32Servo.h>
+ #include <ESP32Servo.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
 #include <WiFi.h>
 #include <ESP_Mail_Client.h>
 
-#define WIFI_SSID "Aradhana Broadband #5078"
-#define WIFI_PASSWORD "Yard@2023"
+#define WIFI_SSID "Vaishnao's Galaxy A52s 5G"
+#define WIFI_PASSWORD "123456788"
 
 #define SMTP_HOST "smtp.gmail.com"
 #define SMTP_PORT 465
 
 #define AUTHOR_EMAIL "esp32.2024pro@gmail.com"
 #define AUTHOR_PASSWORD "phml zrsv rtto fpgz"
-#define RECIPIENT_EMAIL "arunganesh2011@gmail.com"
+#define RECIPIENT_EMAIL "synergize024@gmail.com"
 
 SMTPSession smtp;
   Session_Config config;
+  bool manualControl = false;
 
 // LCD setup (I2C address 0x27 for a 16x2 display)
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -34,6 +35,9 @@ Servo myServo;
 
 void sendNotification()
 {
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Sending...");
   // Create the email message
   SMTP_Message message;
   message.sender.name = "ESP32";
@@ -54,7 +58,8 @@ void sendNotification()
   } else {
     Serial.println("Email sent successfully!");
   }
-
+  lcd.clear();
+  lcd.print("Success!!");
   smtp.closeSession();  // Close the SMTP session
 }
 
@@ -99,6 +104,22 @@ void setup() {
 }
 
 void loop() {
+
+   if (Serial.available() > 0) {
+        String command = Serial.readStringUntil('\n');
+        command.trim();  // Remove any trailing whitespace
+        
+        if (command.equalsIgnoreCase("STOP")) {
+            Serial.println("STOP command received. Rotating servo to 90 degrees.");
+            myServo.write(90);  // Rotate servo to 90 degrees
+            manualControl = true;  // Enter manual control mode
+        } else if (command.equalsIgnoreCase("START")) {
+            Serial.println("START command received. Rotating servo back to 0 degrees.");
+            myServo.write(0);  // Rotate servo back to 0 degrees
+            manualControl = false;  // Exit manual control mode
+        }
+    }
+  if (!manualControl) {
   // Read analog value from MQ-2 sensor (0-1023)
   int sensorValue = analogRead(mq2Pin);
   
@@ -119,7 +140,7 @@ void loop() {
   if (gasConcentration > gasThreshold) {
 
     // Activate the buzzer with "beep-beep" sound
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 10; i++) {
       digitalWrite(buzzerPin, HIGH);  // Turn buzzer on
       delay(200);                     // Wait 200ms
       digitalWrite(buzzerPin, LOW);   // Turn buzzer off
@@ -148,4 +169,5 @@ void loop() {
   
   // Small delay for sensor stability
   delay(1000);
+}
 }
